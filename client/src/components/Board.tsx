@@ -5,6 +5,7 @@ import { sendRequest, methods } from "../utils/request"
 function Board() {
   type Cell = Piece | null;
   type FenResponse = { fen: string }
+  type IsCheckMateResponse = { checkmate: boolean, check: boolean }
 
   const [board, setBoard] = useState<Cell[][]>([]);
   const [turn, setTurn] = useState<Color>("white");
@@ -28,6 +29,25 @@ function Board() {
   }, [])
 
   useEffect(() => {
+    const checkForCheckmate = async () => {
+      try {
+        const res = await sendRequest<IsCheckMateResponse>("/is-checkmate");
+        await sendRequest("/turn", setTurn);
+
+        if (res.checkmate) {
+          alert("Checkmate! Game over. " + (turn === Color.white ? "Black" : "White") + " wins!");
+          await sendRequest("/board", setBoard);
+        } 
+        else if (res.check && turn === Color.white) {
+          alert("Check! You need to make a move to get out of check.");
+        }
+      } catch (err) {
+        console.error("Failed to check for checkmate:", err);
+    }
+  }
+
+    checkForCheckmate();
+
     if (bot && turn === Color.black && !isBotThinking) {
       makeBotMove();
     }
@@ -83,8 +103,8 @@ function Board() {
 
       const uciMove = bestMoveMatch[1];
       await executeBotMove(uciMove);
-    } catch (error) {
-      console.error("Bot move failed:", error);
+    } catch (err) {
+      console.error("Bot move failed:", err);
     } finally {
       setIsBotThinking(false);
     }

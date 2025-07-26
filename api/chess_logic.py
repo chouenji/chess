@@ -52,6 +52,52 @@ def get_board() -> List[List[Optional[Piece]]]:
     return state["board"]
 
 
+def reset_board():
+    global state
+    state = {
+        "board": [
+            [
+                Piece.bR,
+                Piece.bN,
+                Piece.bB,
+                Piece.bQ,
+                Piece.bK,
+                Piece.bB,
+                Piece.bN,
+                Piece.bR,
+            ],
+            [Piece.bP] * COLS,
+            [None] * COLS,
+            [None] * COLS,
+            [None] * COLS,
+            [None] * COLS,
+            [Piece.wP] * COLS,
+            [
+                Piece.wR,
+                Piece.wN,
+                Piece.wB,
+                Piece.wQ,
+                Piece.wK,
+                Piece.wB,
+                Piece.wN,
+                Piece.wR,
+            ],
+        ],
+        "turn": Color.white,
+        "bot": True,
+        "castling": {
+            "white_king_side": True,
+            "white_queen_side": True,
+            "black_king_side": True,
+            "black_queen_side": True,
+        },
+        "en_passant": None,
+        "last_move": None,
+        "halfmove_clock": 0,
+        "fullmove_number": 1,
+    }
+
+
 def get_turn() -> Color:
     return state["turn"]
 
@@ -143,10 +189,37 @@ def can_attack(from_r: int, from_c: int, to_r: int, to_c: int) -> bool:
     return False
 
 
-def is_in_check(color: Color) -> bool:
+def is_in_check() -> bool:
+    color = get_turn()
     king_r, king_c = get_king_position(color)
     attacker_color = Color.black if color == Color.white else Color.white
-    return is_square_under_attack(king_r, king_c, attacker_color)
+    is_check = is_square_under_attack(king_r, king_c, attacker_color)
+
+    if is_check:
+        state["is_check"] = True
+    else:
+        state["is_check"] = False
+
+    return is_check
+
+
+def is_checkmate() -> bool:
+    color = get_turn()
+
+    if not is_in_check():
+        return False
+
+    for r in range(ROWS):
+        for c in range(COLS):
+            piece = state["board"][r][c]
+            if piece and piece.name[0] == ("w" if color == Color.white else "b"):
+                moves = available_moves(r, c)
+                for move in moves:
+                    if is_move_safe(r, c, move[0], move[1]):
+                        # If any move is safe, it's not checkmate
+                        return False
+
+    return True
 
 
 def is_move_safe(from_r: int, from_c: int, to_r: int, to_c: int) -> bool:
@@ -170,7 +243,7 @@ def is_move_safe(from_r: int, from_c: int, to_r: int, to_c: int) -> bool:
         state["board"][to_r][rook_col] = None
 
     # Check if king is safe
-    king_safe = not is_in_check(Color.white if piece.name[0] == "w" else Color.black)
+    king_safe = not is_in_check()
 
     # Restore board
     state["board"] = original_board
@@ -201,6 +274,14 @@ def get_sliding_moves(
 def available_moves(r: int, c: int) -> List[Tuple[int, int]]:
     piece = state["board"][r][c]
     if not piece:
+        return []
+
+    color = get_turn()
+
+    # Prevent client from making moves for opponent's pieces
+    if color == Color.white and piece.name[0] != "w":
+        return []
+    elif color == Color.black and piece.name[0] != "b":
         return []
 
     moves = []
@@ -305,35 +386,35 @@ def available_moves(r: int, c: int) -> List[Tuple[int, int]]:
                 moves.append((nr, nc))
 
         # Castling
-        color = "white" if piece == Piece.wK else "black"
-        row = 7 if color == "white" else 0
+
+        row = 7 if color == Color.white else 0
 
         if r == row and c == 4:  # King on starting position
             # Kingside
-            if state["castling"][f"{color}_king_side"]:
+            if state["castling"][f"{color.value}_king_side"]:
                 if (
                     state["board"][row][5] is None
                     and state["board"][row][6] is None
                     and not is_square_under_attack(
-                        row, 5, Color.black if color == "white" else Color.white
+                        row, 5, Color.black if color == Color.white else Color.white
                     )
                     and not is_square_under_attack(
-                        row, 6, Color.black if color == "white" else Color.white
+                        row, 6, Color.black if color == Color.white else Color.white
                     )
                 ):
                     moves.append((row, 6))
 
             # Queenside
-            if state["castling"][f"{color}_queen_side"]:
+            if state["castling"][f"{color.value}_queen_side"]:
                 if (
                     state["board"][row][3] is None
                     and state["board"][row][2] is None
                     and state["board"][row][1] is None
                     and not is_square_under_attack(
-                        row, 3, Color.black if color == "white" else Color.white
+                        row, 3, Color.black if color == Color.white else Color.white
                     )
                     and not is_square_under_attack(
-                        row, 2, Color.black if color == "white" else Color.white
+                        row, 2, Color.black if color == Color.white else Color.white
                     )
                 ):
                     moves.append((row, 2))
@@ -347,10 +428,11 @@ def make_move(piece_pos: Tuple[int, int], update_row: int, update_col: int) -> b
     global state
     r0, c0 = piece_pos
     piece = state["board"][r0][c0]
-    target = state["board"][update_row][update_col]
 
     if not piece:
         return False
+
+    target = state["board"][update_row][update_col]
 
     # Reset halfmove clock on captures/pawn moves
     if piece in {Piece.wP, Piece.bP} or target is not None:
@@ -373,7 +455,7 @@ def make_move(piece_pos: Tuple[int, int], update_row: int, update_col: int) -> b
         return False
 
     # Update castling rights if king or rook moves
-    color = "white" if piece.name[0] == "w" else "black"
+    color = get_turn()
 
     if piece in {Piece.wK, Piece.bK}:
         state["castling"][f"{color}_king_side"] = False
