@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 import { Piece, Color } from "../enums/piece"
 import { sendRequest, methods } from "../utils/request"
+import EvaluationBar from "./Evaluation";
 
 function Board() {
   type Cell = Piece | null;
   type FenResponse = { fen: string }
   type IsCheckMateResponse = { checkmate: boolean, check: boolean }
+  type StockFishData = {
+    bestmove?: string;
+    continuation?: string;
+    evaluation?: number | null;
+    mate?: number | null;
+    success?: boolean;
+  };
 
   const [board, setBoard] = useState<Cell[][]>([]);
   const [turn, setTurn] = useState<Color>("white");
@@ -13,6 +21,7 @@ function Board() {
   const [possibleMoves, setPossibleMoves] = useState<[number, number][]>([]);
   const [selectedPiece, setSelectedPiece] = useState<[number, number] | null>(null);
   const [isBotThinking, setIsBotThinking] = useState(false);
+  const [evaluation, setEvaluation] = useState<number | null>(null);
 
   useEffect(() => {
     const init = (async () => {
@@ -29,6 +38,10 @@ function Board() {
   }, [])
 
   useEffect(() => {
+    if (bot && turn === Color.black && !isBotThinking) {
+      makeBotMove();
+    }
+
     const checkForCheckmate = async () => {
       try {
         const res = await sendRequest<IsCheckMateResponse>("/is-checkmate");
@@ -37,21 +50,20 @@ function Board() {
         if (res.checkmate) {
           alert("Checkmate! Game over. " + (turn === Color.white ? "Black" : "White") + " wins!");
           await sendRequest("/board", setBoard);
-        } 
+          setEvaluation(null);
+        }
         else if (res.check && turn === Color.white) {
           alert("Check! You need to make a move to get out of check.");
         }
       } catch (err) {
         console.error("Failed to check for checkmate:", err);
+      }
     }
-  }
+
+
+
 
     checkForCheckmate();
-
-    if (bot && turn === Color.black && !isBotThinking) {
-      makeBotMove();
-    }
-
   }, [turn, bot])
 
   async function handleCellClick(row: number, col: number) {
@@ -73,14 +85,14 @@ function Board() {
       Promise.all([
         await sendRequest("/move", null, methods.POST, { piece: selectedPiece, update_row: row, update_col: col }),
         await sendRequest("/turn", setTurn),
-        await sendRequest("/board", setBoard)
+        await sendRequest("/board", setBoard),
       ]);
+
       setPossibleMoves([]);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
   }
-
 
   const makeBotMove = async () => {
     if (!bot || turn !== Color.black || isBotThinking) return;
@@ -88,15 +100,11 @@ function Board() {
     setIsBotThinking(true);
 
     try {
-      const res = await sendRequest<FenResponse>("/fen");
+      const stockFishData = await getStockFishData();
+      const bestMoveMatch = stockFishData.bestmove?.match(/bestmove (\w+)/);
 
-      const stockfishResponse = await fetch(
-        `https://www.stockfish.online/api/s/v2.php?fen=${encodeURIComponent(res.fen)}&depth=12`
-      );
+      setEval(stockFishData);
 
-      const resText = await stockfishResponse.text();
-
-      const bestMoveMatch = resText.match(/bestmove (\w+)/);
       if (!bestMoveMatch) {
         throw new Error("Stockfish API error: No move found in response");
       }
@@ -110,6 +118,27 @@ function Board() {
     }
   };
 
+  const getStockFishData = async () => {
+    const fenRes = await sendRequest<FenResponse>("/fen");
+
+    const stockfishRes = await fetch(
+      `https://www.stockfish.online/api/s/v2.php?fen=${encodeURIComponent(fenRes.fen)}&depth=12`
+    );
+
+    const stockFishData: StockFishData = await stockfishRes.json();
+
+    return stockFishData;
+  }
+
+  const setEval = (stockFishData: StockFishData) => {
+    if (stockFishData.evaluation !== null && stockFishData.evaluation !== undefined) {
+      setEvaluation(stockFishData.evaluation);
+    } else if (stockFishData.mate !== null && stockFishData.mate !== undefined) {
+      setEvaluation(stockFishData.mate);
+    } else {
+      setEvaluation(0);
+    }
+  }
 
   const executeBotMove = async (uciMove: string) => {
     const fromCol = uciMove.charCodeAt(0) - 97; // 'a' -> 0
@@ -174,29 +203,32 @@ function Board() {
         <h1 className="pb-5">{turn == Color.white ? 'White' : 'Black'} to move</h1>
       }
       {isBotThinking && <div className="bot-thinking">Bot is thinking...</div>}
-      <div className="grid grid-cols-8 w-[800px] h-[800px]">
-        {board.map((r, rIdx) =>
-          r.map((piece, cIdx) => {
-            const isLightSqr = (rIdx + cIdx) % 2 === 0;
-            return (
-              <div
-                key={`${rIdx}-${cIdx}`}
-                className={`box-border flex justify-center items-center w-[100px] h-[100px]
-                        ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
-                        ${isPossibleMove(rIdx, cIdx) ? 'border-4 border-orange-800 cursor-pointer hover:bg-yellow-100' : ''}
-                      `}
-                onClick={() => handleCellClick(rIdx, cIdx)}
-              >              {piece && (
-                <img
-                  src={`/public/pieces/${piece}.svg`}
-                  alt={piece}
-                  className="w-20 h-20"
-                />
-              )}
-              </div>
-            );
-          })
-        )}
+      <div className="flex items-center gap-10">
+        <EvaluationBar evaluation={evaluation} />
+        <div className="grid grid-cols-8 w-[800px] h-[800px]">
+          {board.map((r, rIdx) =>
+            r.map((piece, cIdx) => {
+              const isLightSqr = (rIdx + cIdx) % 2 === 0;
+              return (
+                <div
+                  key={`${rIdx}-${cIdx}`}
+                  className={`box-border flex justify-center items-center w-[100px] h-[100px]
+                          ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
+                          ${isPossibleMove(rIdx, cIdx) ? 'border-4 border-orange-800 cursor-pointer hover:bg-yellow-100' : ''}
+                        `}
+                  onClick={() => handleCellClick(rIdx, cIdx)}
+                >              {piece && (
+                  <img
+                    src={`/public/pieces/${piece}.svg`}
+                    alt={piece}
+                    className="w-20 h-20"
+                  />
+                )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </>
   )
