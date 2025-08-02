@@ -4,3 +4,4 @@ dist
 *.md
 .dockerignore
 .gitignore
+.env

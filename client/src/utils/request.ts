@@ -1,4 +1,4 @@
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL || "/api";
 
 export async function sendRequest<T>(endpoint: string, setState: React.Dispatch<React.SetStateAction<T>> | null = null, method: HttpMethod = methods.GET, body?: any): Promise<T> {
   const res = await fetch(`${apiUrl}` + endpoint, {
