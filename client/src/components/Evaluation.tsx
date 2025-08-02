@@ -24,7 +24,7 @@ function EvaluationBar({ evaluation }: EvaluationBarProps) {
       />
       {/* Black advantage (top) */}
       <div
-        className="absolute left-0 top-0 w-full bg-zinc-800 transition-all duration-500"
+        className="absolute left-0 top-0 w-full bg-zinc-900 transition-all duration-500"
         style={{ height: `${100 - percent}%` }}
       />
       {/* Evaluation text */}

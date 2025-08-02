@@ -212,18 +212,25 @@ function Board() {
               return (
                 <div
                   key={`${rIdx}-${cIdx}`}
-                  className={`box-border flex justify-center items-center w-[100px] h-[100px]
-                          ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
-                          ${isPossibleMove(rIdx, cIdx) ? 'border-4 border-orange-800 cursor-pointer hover:bg-yellow-100' : ''}
-                        `}
+                  className={`relative box-border flex justify-center items-center w-[100px] h-[100px] ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'} ${isPossibleMove(rIdx, cIdx) ? 'cursor-pointer hover:bg-yellow-100' : ''}`}
                   onClick={() => handleCellClick(rIdx, cIdx)}
-                >              {piece && (
-                  <img
-                    src={`/public/pieces/${piece}.svg`}
-                    alt={piece}
-                    className="w-20 h-20"
-                  />
-                )}
+                >
+                  {piece && (
+                    <img
+                      src={`/pieces/${piece}.svg`}
+                      alt={piece}
+                      className="w-20 h-20"
+                    />
+                  )}
+                  {isPossibleMove(rIdx, cIdx) && (
+                    piece
+                      ? (
+                        <span className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-6 border-gray-600 opacity-50"></span>
+                      )
+                      : (
+                        <span className="absolute left-1/2 top-1/2 w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-600 opacity-50"></span>
+                      )
+                  )}
                 </div>
               );
             })

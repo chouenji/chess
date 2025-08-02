@@ -1,0 +1,13 @@
+services:
+  client:
+    build: ./client
+    ports: [ "80:80" ]
+
+  api:
+    build: ./api
+    ports: [ "8000:80" ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3

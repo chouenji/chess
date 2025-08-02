@@ -14,6 +14,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 
 @router.get("/board")
 def get_board_endpoint():
@@ -40,6 +44,7 @@ def is_checkmate_endpoint():
         return {"checkmate": False, "check": True}
 
     return {"checkmate": False, "check": False}
+
 
 @router.post("/moves")
 def available_moves_endpoint(req: MovesRequest):
