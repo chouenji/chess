@@ -197,45 +197,62 @@ function Board() {
     return possibleMoves.some(([r, c]) => r === row && c === col);
   }
 
+  async function resetBoard() {
+    await sendRequest("/reset-board", null, methods.POST);
+    await sendRequest("/board", setBoard);
+    await sendRequest("/turn", setTurn);
+    setEvaluation(null);
+    setPossibleMoves([]);
+    setSelectedPiece(null);
+  }
+
   return (
     <>
       {turn &&
-        <h1 className="pb-5">{turn == Color.white ? 'White' : 'Black'} to move</h1>
+        <h1 className="pb-2">{turn == Color.white ? 'White' : 'Black'} to move</h1>
       }
-      {isBotThinking && <div className="bot-thinking">Bot is thinking...</div>}
+      {isBotThinking && <div className="pb-2">Bot is thinking...</div>}
       <div className="flex items-center gap-10">
         <EvaluationBar evaluation={evaluation} />
         <div className="grid grid-cols-8 w-[800px] h-[800px]">
-          {board.map((r, rIdx) =>
-            r.map((piece, cIdx) => {
-              const isLightSqr = (rIdx + cIdx) % 2 === 0;
-              return (
-                <div
-                  key={`${rIdx}-${cIdx}`}
-                  className={`relative box-border flex justify-center items-center w-[100px] h-[100px] ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'} ${isPossibleMove(rIdx, cIdx) ? 'cursor-pointer hover:bg-yellow-100' : ''}`}
-                  onClick={() => handleCellClick(rIdx, cIdx)}
-                >
-                  {piece && (
-                    <img
-                      src={`/pieces/${piece}.svg`}
-                      alt={piece}
-                      className="w-20 h-20"
-                    />
-                  )}
-                  {isPossibleMove(rIdx, cIdx) && (
-                    piece
-                      ? (
-                        <span className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-6 border-gray-600 opacity-50"></span>
-                      )
-                      : (
-                        <span className="absolute left-1/2 top-1/2 w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-600 opacity-50"></span>
-                      )
-                  )}
-                </div>
-              );
-            })
-          )}
+          {Array.isArray(board) && board.length > 0 && board.every(Array.isArray) &&
+            board.map((r, rIdx) =>
+              r.map((piece, cIdx) => {
+                const isLightSqr = (rIdx + cIdx) % 2 === 0;
+                return (
+                  <div
+                    key={`${rIdx}-${cIdx}`}
+                    className={`relative box-border flex justify-center items-center w-[100px] h-[100px] ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'} ${isPossibleMove(rIdx, cIdx) ? 'cursor-pointer hover:bg-yellow-100' : ''}`}
+                    onClick={() => handleCellClick(rIdx, cIdx)}
+                  >
+                    {piece && (
+                      <img
+                        src={`/pieces/${piece}.svg`}
+                        alt={piece}
+                        className="w-20 h-20"
+                      />
+                    )}
+                    {isPossibleMove(rIdx, cIdx) && (
+                      piece
+                        ? (
+                          <span className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-6 border-gray-600 opacity-50"></span>
+                        )
+                        : (
+                          <span className="absolute left-1/2 top-1/2 w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-600 opacity-50"></span>
+                        )
+                    )}
+                  </div>
+                );
+              })
+            )}
         </div>
+        <button
+          className="px-4 py-2 bg-black hover:bg-zinc-900 text-white rounded"
+          onClick={resetBoard}
+        >
+          Restart Game
+        </button>
+
       </div>
     </>
   )

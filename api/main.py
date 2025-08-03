@@ -46,6 +46,12 @@ def is_checkmate_endpoint():
     return {"checkmate": False, "check": False}
 
 
+@router.post("/reset-board")
+def reset_board_endpoint():
+    reset_board()
+    return {"status": "Board reset successfully"}
+
+
 @router.post("/moves")
 def available_moves_endpoint(req: MovesRequest):
     return available_moves(req.row, req.col)
