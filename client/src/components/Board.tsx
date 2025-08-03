@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import { Piece, Color } from "../enums/piece"
 import { sendRequest, methods } from "../utils/request"
 import EvaluationBar from "./Evaluation";
+import { GameMode } from "../enums/game-mode";
 
-function Board() {
+interface BoardProps {
+  mode: GameMode;
+  onReturnToMenu?: () => void;
+}
+
+function Board({ mode, onReturnToMenu }: BoardProps) {
   type Cell = Piece | null;
   type FenResponse = { fen: string }
   type IsCheckMateResponse = { checkmate: boolean, check: boolean }
@@ -17,7 +23,7 @@ function Board() {
 
   const [board, setBoard] = useState<Cell[][]>([]);
   const [turn, setTurn] = useState<Color>("white");
-  const [bot, _] = useState<boolean>(true);
+  const [bot, setBot] = useState<boolean>(false);
   const [possibleMoves, setPossibleMoves] = useState<[number, number][]>([]);
   const [selectedPiece, setSelectedPiece] = useState<[number, number] | null>(null);
   const [isBotThinking, setIsBotThinking] = useState(false);
@@ -33,6 +39,10 @@ function Board() {
         console.error(err);
       }
     })
+
+    if (mode === GameMode.bot) {
+      setBot(true);
+    }
 
     init();
   }, [])
@@ -213,7 +223,7 @@ function Board() {
       }
       {isBotThinking && <div className="pb-2">Bot is thinking...</div>}
       <div className="flex items-center gap-10">
-        <EvaluationBar evaluation={evaluation} />
+        {mode === GameMode.bot && <EvaluationBar evaluation={evaluation} />}
         <div className="grid grid-cols-8 w-[800px] h-[800px]">
           {Array.isArray(board) && board.length > 0 && board.every(Array.isArray) &&
             board.map((r, rIdx) =>
@@ -246,13 +256,20 @@ function Board() {
               })
             )}
         </div>
-        <button
-          className="px-4 py-2 bg-black hover:bg-zinc-900 text-white rounded"
-          onClick={resetBoard}
-        >
-          Restart Game
-        </button>
-
+        <div className="flex flex-col items-center gap-4">
+          <button
+            className="px-4 py-2 bg-black hover:bg-zinc-900 text-white rounded"
+            onClick={resetBoard}
+          >
+            Restart Game
+          </button>
+          <button
+            className="px-4 py-2 bg-black hover:bg-zinc-900 text-white rounded"
+            onClick={() => onReturnToMenu && onReturnToMenu()}
+          >
+            Return to Menu
+          </button>
+        </div>
       </div>
     </>
   )

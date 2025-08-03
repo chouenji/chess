@@ -14,15 +14,18 @@ function Menu({ onSelectMode }: MenuProps) {
             >
                 Player vs Bot
             </button>
-            <button className="w-64 py-3 mb-2 rounded bg-zinc-400 text-white text-xl font-semibold cursor-not-allowed opacity-60" disabled>
-                Player vs Player (Multiplayer)
-                <span className="block text-xs text-zinc-200">Coming soon</span>
-            </button>
-            <button className="w-64 py-3 mb-2 rounded bg-zinc-400 text-white text-xl font-semibold cursor-not-allowed opacity-60" disabled>
-                Player vs Player (Offline)
-                <span className="block text-xs text-zinc-200">Coming soon</span>
+            <button className="w-64 py-3 rounded bg-black hover:bg-zinc-900 text-white text-xl font-semibold transition"
+                onClick={() => onSelectMode(GameMode.local)}
+            >
+                Player vs Player (Local)
             </button>
 
+            <button className="w-64 py-3 mb-2 rounded bg-zinc-400 text-white text-xl font-semibold cursor-not-allowed opacity-60"
+                onClick={() => onSelectMode(GameMode.online)}
+                disabled>
+                Player vs Player (Online)
+                <span className="block text-xs text-zinc-200">Coming soon</span>
+            </button>
         </div>
     );
 }

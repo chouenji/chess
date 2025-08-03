@@ -1,8 +1,8 @@
 export const GameMode = {
   menu: "menu",
   bot: "bot",
-  offline: "offline",
-  multiplayer: "multiplayer"
+  local: "local",
+  online: "online"
 };
 
 export type GameMode = typeof GameMode[keyof typeof GameMode];
