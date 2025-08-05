@@ -5,47 +5,47 @@ ROWS = 8
 COLS = 8
 
 state = {
-    "board": [
-        [
-            Piece.bR,
-            Piece.bN,
-            Piece.bB,
-            Piece.bQ,
-            Piece.bK,
-            Piece.bB,
-            Piece.bN,
-            Piece.bR,
+        "board": [
+            [
+                Piece.bR,
+                Piece.bN,
+                Piece.bB,
+                Piece.bQ,
+                Piece.bK,
+                Piece.bB,
+                Piece.bN,
+                Piece.bR,
+            ],
+            [Piece.bP] * COLS,
+            [None] * COLS,
+            [None] * COLS,
+            [None] * COLS,
+            [None] * COLS,
+            [Piece.wP] * COLS,
+            [
+                Piece.wR,
+                Piece.wN,
+                Piece.wB,
+                Piece.wQ,
+                Piece.wK,
+                Piece.wB,
+                Piece.wN,
+                Piece.wR,
+            ],
         ],
-        [Piece.bP] * COLS,
-        [None] * COLS,
-        [None] * COLS,
-        [None] * COLS,
-        [None] * COLS,
-        [Piece.wP] * COLS,
-        [
-            Piece.wR,
-            Piece.wN,
-            Piece.wB,
-            Piece.wQ,
-            Piece.wK,
-            Piece.wB,
-            Piece.wN,
-            Piece.wR,
-        ],
-    ],
-    "turn": Color.white,
-    "bot": True,
-    "castling": {
-        "white_king_side": True,
-        "white_queen_side": True,
-        "black_king_side": True,
-        "black_queen_side": True,
-    },
-    "en_passant": None,
-    "last_move": None,
-    "halfmove_clock": 0,
-    "fullmove_number": 1,
-}
+        "turn": Color.white,
+        "bot": True,
+        "castling": {
+            "white_king_side": True,
+            "white_queen_side": True,
+            "black_king_side": True,
+            "black_queen_side": True,
+        },
+        "en_passant": None,
+        "last_move": None,
+        "halfmove_clock": 0,
+        "fullmove_number": 1,
+    }
 
 
 def get_board() -> List[List[Optional[Piece]]]:
@@ -96,6 +96,7 @@ def reset_board():
         "halfmove_clock": 0,
         "fullmove_number": 1,
     }
+    
 
 
 def get_turn() -> Color:
@@ -123,18 +124,12 @@ def get_king_position(color: Color) -> Tuple[int, int]:
 
 def is_square_under_attack(row: int, col: int, attacker_color: Color) -> bool:
     board = state["board"]
-    # Check all pieces of attacker_color
     for r in range(ROWS):
         for c in range(COLS):
             piece = board[r][c]
             if piece and piece.name[0] == (
                 "w" if attacker_color == Color.white else "b"
             ):
-                # Skip the king to avoid recursion
-                if piece in [Piece.wK, Piece.bK]:
-                    continue
-
-                # Check if this piece can attack the target square
                 if can_attack(r, c, row, col):
                     return True
     return False
@@ -143,6 +138,10 @@ def is_square_under_attack(row: int, col: int, attacker_color: Color) -> bool:
 def can_attack(from_r: int, from_c: int, to_r: int, to_c: int) -> bool:
     piece = state["board"][from_r][from_c]
     if not piece:
+        return False
+
+    # Prevent kings from "attacking" their own square
+    if from_r == to_r and from_c == to_c:
         return False
 
     # Rook-like movement (rook, queen)
@@ -184,6 +183,8 @@ def can_attack(from_r: int, from_c: int, to_r: int, to_c: int) -> bool:
 
     # King (adjacent squares)
     if piece in {Piece.wK, Piece.bK}:
+        if from_r == to_r and from_c == to_c:
+            return False
         return abs(from_r - to_r) <= 1 and abs(from_c - to_c) <= 1
 
     return False
@@ -216,8 +217,24 @@ def is_checkmate() -> bool:
                 moves = available_moves(r, c)
                 for move in moves:
                     if is_move_safe(r, c, move[0], move[1]):
-                        # If any move is safe, it's not checkmate
                         return False
+
+    return True
+
+
+def is_stalemate() -> bool:
+    color = get_turn()
+
+    if is_in_check():
+        return False 
+
+    for r in range(ROWS):
+        for c in range(COLS):
+            piece = state["board"][r][c]
+            if piece and piece.name[0] == ("w" if color == Color.white else "b"):
+                moves = available_moves(r, c)
+                if moves:
+                    return False
 
     return True
 
@@ -386,38 +403,38 @@ def available_moves(r: int, c: int) -> List[Tuple[int, int]]:
                 moves.append((nr, nc))
 
         # Castling
-
         row = 7 if color == Color.white else 0
 
-        if r == row and c == 4:  # King on starting position
-            # Kingside
-            if state["castling"][f"{color.value}_king_side"]:
-                if (
-                    state["board"][row][5] is None
-                    and state["board"][row][6] is None
-                    and not is_square_under_attack(
-                        row, 5, Color.black if color == Color.white else Color.white
-                    )
-                    and not is_square_under_attack(
-                        row, 6, Color.black if color == Color.white else Color.white
-                    )
-                ):
-                    moves.append((row, 6))
+        if not is_in_check():
+            if r == row and c == 4:  # King on starting position
+                # Kingside
+                if state["castling"][f"{color.value}_king_side"]:
+                    if (
+                        state["board"][row][5] is None
+                        and state["board"][row][6] is None
+                        and not is_square_under_attack(
+                            row, 5, Color.black if color == Color.white else Color.white
+                        )
+                        and not is_square_under_attack(
+                            row, 6, Color.black if color == Color.white else Color.white
+                        )
+                    ):
+                        moves.append((row, 6))
 
-            # Queenside
-            if state["castling"][f"{color.value}_queen_side"]:
-                if (
-                    state["board"][row][3] is None
-                    and state["board"][row][2] is None
-                    and state["board"][row][1] is None
-                    and not is_square_under_attack(
-                        row, 3, Color.black if color == Color.white else Color.white
-                    )
-                    and not is_square_under_attack(
-                        row, 2, Color.black if color == Color.white else Color.white
-                    )
-                ):
-                    moves.append((row, 2))
+                # Queenside
+                if state["castling"][f"{color.value}_queen_side"]:
+                    if (
+                        state["board"][row][3] is None
+                        and state["board"][row][2] is None
+                        and state["board"][row][1] is None
+                        and not is_square_under_attack(
+                            row, 3, Color.black if color == Color.white else Color.white
+                        )
+                        and not is_square_under_attack(
+                            row, 2, Color.black if color == Color.white else Color.white
+                        )
+                    ):
+                        moves.append((row, 2))
 
     # Filter moves that would leave king in check
     safe_moves = [move for move in moves if is_move_safe(r, c, move[0], move[1])]
@@ -439,10 +456,6 @@ def make_move(piece_pos: Tuple[int, int], update_row: int, update_col: int) -> b
         state["halfmove_clock"] = 0
     else:
         state["halfmove_clock"] += 1
-
-    # Increment fullmove after black's turn
-    if state["turn"] == Color.black:
-        state["fullmove_number"] += 1
 
     # Validate turn
     if state["turn"] == Color.white and piece.name[0] != "w":
@@ -509,6 +522,10 @@ def make_move(piece_pos: Tuple[int, int], update_row: int, update_col: int) -> b
 
     # Switch turn
     state["turn"] = Color.black if state["turn"] == Color.white else Color.white
+
+    # Increment fullmove after black's turn (after turn switch)
+    if state["turn"] == Color.white:
+        state["fullmove_number"] += 1
 
     # Store last move for en passant
     state["last_move"] = (piece, r0, c0, update_row, update_col)

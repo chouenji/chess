@@ -1,14 +1,14 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from request import MovesRequest, MoveRequest
-from chess_logic import get_board, get_turn, available_moves, make_move, generate_fen, reset_board, is_in_check, is_checkmate
+from logic import get_board, get_turn, available_moves, is_stalemate, make_move, generate_fen, reset_board, is_in_check, is_checkmate
 
 app = FastAPI()
 router = APIRouter(prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://chouenji-chess.duckdns.org"],
+    allow_origins=["https://chouenji-chess.duckdns.org", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,8 +34,8 @@ def get_fen():
     return {"fen": generate_fen()}
 
 
-@router.get("/is-checkmate")
-def is_checkmate_endpoint():
+@router.get("/game-condition")
+def game_condition_endpoint():
     if is_checkmate():
         reset_board()
         return {"checkmate": True, "check": False}
@@ -43,7 +43,11 @@ def is_checkmate_endpoint():
     if is_in_check():
         return {"checkmate": False, "check": True}
 
-    return {"checkmate": False, "check": False}
+    if is_stalemate():
+        reset_board()
+        return {"checkmate": False, "check": False, "stalemate": True}
+
+    return {"checkmate": False, "check": False, "stalemate": False}
 
 
 @router.post("/reset-board")

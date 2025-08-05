@@ -9,12 +9,12 @@ function Menu({ onSelectMode }: MenuProps) {
         <div className="flex flex-col items-center justify-center w-full h-screen gap-6 ">
             <h1 className="text-4xl font-bold mb-8">Chess Menu</h1>
             <button
-                className="w-64 py-3 rounded bg-black hover:bg-zinc-900 text-white text-xl font-semibold transition"
+                className="w-64 py-3 rounded bg-black hover:bg-zinc-900 text-white text-xl font-semibold transition cursor-pointer"
                 onClick={() => onSelectMode(GameMode.bot)}
             >
                 Player vs Bot
             </button>
-            <button className="w-64 py-3 rounded bg-black hover:bg-zinc-900 text-white text-xl font-semibold transition"
+            <button className="w-64 py-3 rounded bg-black hover:bg-zinc-900 text-white text-xl font-semibold transition cursor-pointer"
                 onClick={() => onSelectMode(GameMode.local)}
             >
                 Player vs Player (Local)

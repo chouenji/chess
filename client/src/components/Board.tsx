@@ -3,16 +3,18 @@ import { Piece, Color } from "../enums/piece"
 import { sendRequest, methods } from "../utils/request"
 import EvaluationBar from "./Evaluation";
 import { GameMode } from "../enums/game-mode";
+import { BotDifficulty } from "../enums/bot-difficulty";
 
 interface BoardProps {
   mode: GameMode;
   onReturnToMenu?: () => void;
+  botLevel?: string;
 }
 
-function Board({ mode, onReturnToMenu }: BoardProps) {
+function Board({ mode, onReturnToMenu, botLevel }: BoardProps) {
   type Cell = Piece | null;
   type FenResponse = { fen: string }
-  type IsCheckMateResponse = { checkmate: boolean, check: boolean }
+  type GameConditionResponse = { checkmate: boolean, check: boolean, stalemate: boolean }
   type StockFishData = {
     bestmove?: string;
     continuation?: string;
@@ -52,13 +54,18 @@ function Board({ mode, onReturnToMenu }: BoardProps) {
       makeBotMove();
     }
 
-    const checkForCheckmate = async () => {
+    const checkForGameCondition = async () => {
       try {
-        const res = await sendRequest<IsCheckMateResponse>("/is-checkmate");
+        const res = await sendRequest<GameConditionResponse>("/game-condition");
         await sendRequest("/turn", setTurn);
 
         if (res.checkmate) {
           alert("Checkmate! Game over. " + (turn === Color.white ? "Black" : "White") + " wins!");
+          await sendRequest("/board", setBoard);
+          setEvaluation(null);
+        }
+        else if (res.stalemate) {
+          alert("Stalemate! The game is a draw.");
           await sendRequest("/board", setBoard);
           setEvaluation(null);
         }
@@ -70,10 +77,7 @@ function Board({ mode, onReturnToMenu }: BoardProps) {
       }
     }
 
-
-
-
-    checkForCheckmate();
+    checkForGameCondition();
   }, [turn, bot])
 
   async function handleCellClick(row: number, col: number) {
@@ -131,8 +135,23 @@ function Board({ mode, onReturnToMenu }: BoardProps) {
   const getStockFishData = async () => {
     const fenRes = await sendRequest<FenResponse>("/fen");
 
+    let depth = 1;
+
+    switch (botLevel) {
+      case BotDifficulty.easy:
+        break;
+      case BotDifficulty.medium:
+        depth = 4;
+        break;
+      case BotDifficulty.hard:
+        depth = 12;
+        break;
+      default:
+        throw new Error(`Unknown bot level: ${botLevel}`);
+    }
+
     const stockfishRes = await fetch(
-      `https://www.stockfish.online/api/s/v2.php?fen=${encodeURIComponent(fenRes.fen)}&depth=12`
+      `https://www.stockfish.online/api/s/v2.php?fen=${encodeURIComponent(fenRes.fen)}&depth=${depth}`
     );
 
     const stockFishData: StockFishData = await stockfishRes.json();
@@ -216,6 +235,14 @@ function Board({ mode, onReturnToMenu }: BoardProps) {
     setSelectedPiece(null);
   }
 
+  async function onReturnToMenuClick() {
+    await resetBoard();
+
+    if (onReturnToMenu) {
+      onReturnToMenu();
+    }
+  }
+
   return (
     <>
       {turn &&
@@ -232,7 +259,9 @@ function Board({ mode, onReturnToMenu }: BoardProps) {
                 return (
                   <div
                     key={`${rIdx}-${cIdx}`}
-                    className={`relative box-border flex justify-center items-center w-[100px] h-[100px] ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'} ${isPossibleMove(rIdx, cIdx) ? 'cursor-pointer hover:bg-yellow-100' : ''}`}
+                    className={`relative box-border flex justify-center items-center w-[100px] h-[100px] 
+                      ${isLightSqr ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'} 
+                      ${isPossibleMove(rIdx, cIdx) ? 'cursor-pointer hover:opacity-85' : ''}`}
                     onClick={() => handleCellClick(rIdx, cIdx)}
                   >
                     {piece && (
@@ -265,7 +294,7 @@ function Board({ mode, onReturnToMenu }: BoardProps) {
           </button>
           <button
             className="px-4 py-2 bg-black hover:bg-zinc-900 text-white rounded"
-            onClick={() => onReturnToMenu && onReturnToMenu()}
+            onClick={() => onReturnToMenuClick()}
           >
             Return to Menu
           </button>

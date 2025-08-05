@@ -9,7 +9,7 @@ const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(
 function EvaluationBar({ evaluation }: EvaluationBarProps) {
   const evalClamped = clamp(evaluation ?? 0, -20, 20);
 
-  const isMate = evaluation !== null && Number.isInteger(evaluation) && Math.abs(evaluation) <= 10;
+  const isMate = evaluation !== null && evaluation !== 0 && Number.isInteger(evaluation);
   let percent = ((evalClamped + 20) / 40) * 100;
   if (isMate) {
     percent = evaluation! > 0 ? 100 : 0;
