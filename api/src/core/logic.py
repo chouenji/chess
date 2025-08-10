@@ -1,52 +1,11 @@
 from typing import List, Optional, Tuple
 from enums.piece import Color, Piece
+from tests.board_template_test import en_passant_state
 
 ROWS = 8
 COLS = 8
 
-state = {
-        "board": [
-            [
-                Piece.bR,
-                Piece.bN,
-                Piece.bB,
-                Piece.bQ,
-                Piece.bK,
-                Piece.bB,
-                Piece.bN,
-                Piece.bR,
-            ],
-            [Piece.bP] * COLS,
-            [None] * COLS,
-            [None] * COLS,
-            [None] * COLS,
-            [None] * COLS,
-            [Piece.wP] * COLS,
-            [
-                Piece.wR,
-                Piece.wN,
-                Piece.wB,
-                Piece.wQ,
-                Piece.wK,
-                Piece.wB,
-                Piece.wN,
-                Piece.wR,
-            ],
-        ],
-        "turn": Color.white,
-        "bot": True,
-        "castling": {
-            "white_king_side": True,
-            "white_queen_side": True,
-            "black_king_side": True,
-            "black_queen_side": True,
-        },
-        "en_passant": None,
-        "last_move": None,
-        "halfmove_clock": 0,
-        "fullmove_number": 1,
-    }
-
+state = en_passant_state
 
 def get_board() -> List[List[Optional[Piece]]]:
     return state["board"]
@@ -84,7 +43,6 @@ def reset_board():
             ],
         ],
         "turn": Color.white,
-        "bot": True,
         "castling": {
             "white_king_side": True,
             "white_queen_side": True,
@@ -140,9 +98,6 @@ def can_attack(from_r: int, from_c: int, to_r: int, to_c: int) -> bool:
     if not piece:
         return False
 
-    # Prevent kings from "attacking" their own square
-    if from_r == to_r and from_c == to_c:
-        return False
 
     # Rook-like movement (rook, queen)
     if piece in {Piece.wR, Piece.bR, Piece.wQ, Piece.bQ}:

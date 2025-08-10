@@ -1,12 +1,11 @@
 # test.py
 import unittest
-from logic import *
+from core.logic import *
 from enums.piece import Color, Piece
 
 class TestChessLogic(unittest.TestCase):
     def setUp(self):
         reset_board()
-
     def test_initial_board_setup(self):
         board = get_board()
         # Test back rank pieces
@@ -66,7 +65,7 @@ class TestChessLogic(unittest.TestCase):
         # Place white queen at (1, 4) to attack black king at (0, 4)
         get_board()[1][4] = Piece.wQ
         # Set turn to black
-        from logic import state
+        from core.logic import state
         state["turn"] = Color.black
         self.assertTrue(is_in_check())
         self.assertEqual(get_turn(), Color.black)
