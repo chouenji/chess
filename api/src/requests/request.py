@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Tuple
-from enums.piece import Piece
+from ..enums.piece import Piece
 
 
 class MovesRequest(BaseModel):
