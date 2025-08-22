@@ -3,7 +3,7 @@ services:
     build: ./client
     ports: [ "80:80" ]
 
-  api:
+  chess-api:
     build: ./api
     ports: [ "8000:80" ]
     healthcheck:

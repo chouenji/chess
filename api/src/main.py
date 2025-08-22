@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from requests.request import MovesRequest, MoveRequest
-from core.logic import get_board, get_turn, available_moves, is_stalemate, make_move, generate_fen, reset_board, is_in_check, is_checkmate
+from .requests.request import MovesRequest, MoveRequest
+from .core.logic import get_board, get_turn, available_moves, is_stalemate, make_move, generate_fen, reset_board, is_in_check, is_checkmate
 
 app = FastAPI()
 router = APIRouter(prefix="/api")
